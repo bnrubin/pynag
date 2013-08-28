@@ -253,31 +253,18 @@ class simple:
         """
     
         # Execute send_nsca
-        # from popen2 import Popen3
         command = "send_nsca -H %s" % ncsahost
         p = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
 
-        #p = Popen3(command,  capturestderr=True)
-
         # Service check
         if service:
-            p.communicate(input="%s\t%s\t%s\t%s\t%s\n" % (hostname, service, code, message, self.perfdata_string()))
-            #print >>p.tochild, "%s	%s	%s	%s %s" % (hostname, service, code, message, self.perfdata_string())
+            (stdoutdata, stderrdata) = p.communicate(input="%s\t%s\t%s\t%s\t%s\n" % (hostname, service, code, message, self.perfdata_string()))
         # Host check, omit service_description
         else:
-            p.communicate(input="%s\t%s\t%s\t%s\n" % (hostname, code, message, self.perfdata_string()))
-            #print >>p.tochild, "%s	%s	%s %s" % (hostname, code, message, self.perfdata_string())
-
-        # Send eof
-        # TODO, support multiple statuses ?
-        #p.tochild.close()
-        #p.terminate()
+            (stdoutdata, stderrdata) = p.communicate(input="%s\t%s\t%s\t%s\n" % (hostname, code, message, self.perfdata_string()))
 
         # Save output incase we have an error
-        nsca_output = ''
-        for line in p.stdout.readlines():
-        # for line in p.fromchild.readlines():
-            nsca_output += line
+        nsca_output = stdoutdata
 
 
         # Wait for send_nsca to exit
