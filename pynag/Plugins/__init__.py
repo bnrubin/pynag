@@ -28,6 +28,7 @@ from platform import node
 from optparse import OptionParser, OptionGroup
 from pynag.Utils import PerfData, PynagError
 import new_threshold_syntax
+from subprocess import Popen, PIPE, STDOUT
 
 # Map the return codes
 OK = 0
@@ -252,29 +253,39 @@ class simple:
         """
     
         # Execute send_nsca
-        from popen2 import Popen3
+        # from popen2 import Popen3
         command = "send_nsca -H %s" % ncsahost
-        p = Popen3(command,  capturestderr=True)
+        p = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+
+        #p = Popen3(command,  capturestderr=True)
 
         # Service check
         if service:
-            print >>p.tochild, "%s	%s	%s	%s %s" % (hostname, service, code, message, self.perfdata_string())
+            p.communicate(input="%s\t%s\t%s\t%s\t%s\n" % (hostname, service, code, message, self.perfdata_string()))
+            #print >>p.tochild, "%s	%s	%s	%s %s" % (hostname, service, code, message, self.perfdata_string())
         # Host check, omit service_description
         else:
-            print >>p.tochild, "%s	%s	%s %s" % (hostname, code, message, self.perfdata_string())
+            p.communicate(input="%s\t%s\t%s\t%s\n" % (hostname, code, message, self.perfdata_string()))
+            #print >>p.tochild, "%s	%s	%s %s" % (hostname, code, message, self.perfdata_string())
 
         # Send eof
         # TODO, support multiple statuses ?
-        p.tochild.close()
+        #p.tochild.close()
+        #p.terminate()
 
         # Save output incase we have an error
         nsca_output = ''
-        for line in p.fromchild.readlines():
+        for line in p.stdout.readlines():
+        # for line in p.fromchild.readlines():
             nsca_output += line
+
 
         # Wait for send_nsca to exit
         returncode = p.wait()
-        returncode = os.WEXITSTATUS( returncode) 
+        try:
+            returncode = os.WEXITSTATUS( returncode)
+        except AttributeError:
+            pass
 
         # Problem with running nsca
         if returncode != 0:
@@ -282,7 +293,6 @@ class simple:
                 raise Exception("Could not find send_nsca in path")
             else:
                 raise Exception("returncode: %i\n%s" % (returncode, nsca_output))
-
         return 0
 
     def nagios_exit(self, code_text, message):
