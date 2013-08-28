@@ -255,7 +255,7 @@ class simple:
         # Execute send_nsca
         # from popen2 import Popen3
         command = "send_nsca -H %s" % ncsahost
-        p = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+        p = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
 
         #p = Popen3(command,  capturestderr=True)
 
